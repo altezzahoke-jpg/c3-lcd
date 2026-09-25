@@ -2,8 +2,8 @@ name: Compile ESP32-C3 LCD
 
 on:
   push:
-    branches: [ main ] # Otomatis kompilasi setiap ada push ke branch main
-  workflow_dispatch:   # Memungkinkan tombol kompilasi manual
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   compile:
@@ -25,9 +25,4 @@ jobs:
             - esp32c3_lcd
           cli-compile-flags: |
             --export-binaries
-
-      - name: Upload Hasil Build (Firmware .bin)
-        uses: actions/upload-artifact@v4
-        with:
-          name: esp32c3-firmware
-          path: esp32c3_lcd/**/*.bin
+            --build-property=compiler.cpp.extra_flags="-DUSER_SETUP_LOADED=1 -DST7789_DRIVER=1 -DTFT_WIDTH=76 -DTFT_HEIGHT=284 -DTFT_MOSI=6 -DTFT_SCLK=4 -DTFT_CS=7 -DTFT_DC=2 -DTFT_RST=1 -DLOAD_GLCD=1 -DLOAD_FONT2=1 -DLOAD_FONT4=1 -DSPI_FREQUENCY=27000000"
