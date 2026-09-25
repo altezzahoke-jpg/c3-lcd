@@ -12,17 +12,40 @@ jobs:
       - name: Checkout Repositori
         uses: actions/checkout@v4
 
-      - name: Compile Arduino Sketch
-        uses: arduino/compile-sketches@v1
+      - name: Setup Arduino CLI
+        uses: arduino/setup-arduino-cli@v2
+
+      - name: Install ESP32 Platform & Libraries
+        run: |
+          arduino-cli core update-index --additional-urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+          arduino-cli core install esp32:esp32 --additional-urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+          arduino-cli lib install TFT_eSPI
+
+      - name: Konfigurasi TFT_eSPI (User_Setup.h)
+        run: |
+          SETUP_FILE=$(find /home/runner -name "User_Setup.h" 2>/dev/null | head -n 1)
+          cat << 'EOF' > "$SETUP_FILE"
+          #define USER_SETUP_LOADED 1
+          #define ST7789_DRIVER 1
+          #define TFT_WIDTH 76
+          #define TFT_HEIGHT 284
+          #define TFT_MOSI 6
+          #define TFT_SCLK 4
+          #define TFT_CS 7
+          #define TFT_DC 2
+          #define TFT_RST 1
+          #define LOAD_GLCD 1
+          #define LOAD_FONT2 1
+          #define LOAD_FONT4 1
+          #define SPI_FREQUENCY 27000000
+          EOF
+
+      - name: Compile Sketch
+        run: |
+          arduino-cli compile --fqbn esp32:esp32:esp32c3 --export-binaries esp32c3_lcd
+
+      - name: Upload Hasil Build (Firmware .bin)
+        uses: actions/upload-artifact@v4
         with:
-          fqbn: esp32:esp32:esp32c3
-          platforms: |
-            - name: esp32:esp32
-              source-url: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
-          libraries: |
-            - name: TFT_eSPI
-          sketch-paths: |
-            - esp32c3_lcd
-          cli-compile-flags: |
-            --export-binaries
-            --build-property=compiler.cpp.extra_flags="-DUSER_SETUP_LOADED=1 -DST7789_DRIVER=1 -DTFT_WIDTH=76 -DTFT_HEIGHT=284 -DTFT_MOSI=6 -DTFT_SCLK=4 -DTFT_CS=7 -DTFT_DC=2 -DTFT_RST=1 -DLOAD_GLCD=1 -DLOAD_FONT2=1 -DLOAD_FONT4=1 -DSPI_FREQUENCY=27000000"
+          name: esp32c3-firmware
+          path: esp32c3_lcd/build/esp32.esp32.esp32c3/*.bin
