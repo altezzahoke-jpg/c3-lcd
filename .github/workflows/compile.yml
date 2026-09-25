@@ -1,0 +1,33 @@
+name: Compile ESP32-C3 LCD
+
+on:
+  push:
+    branches: [ main ] # Otomatis kompilasi setiap ada push ke branch main
+  workflow_dispatch:   # Memungkinkan tombol kompilasi manual
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repositori
+        uses: actions/checkout@v4
+
+      - name: Compile Arduino Sketch
+        uses: arduino/compile-sketches@v1
+        with:
+          fqbn: esp32:esp32:esp32c3
+          platforms: |
+            - name: esp32:esp32
+              source-url: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+          libraries: |
+            - name: TFT_eSPI
+          sketch-paths: |
+            - esp32c3_lcd
+          cli-compile-flags: |
+            --export-binaries
+
+      - name: Upload Hasil Build (Firmware .bin)
+        uses: actions/upload-artifact@v4
+        with:
+          name: esp32c3-firmware
+          path: esp32c3_lcd/**/*.bin
