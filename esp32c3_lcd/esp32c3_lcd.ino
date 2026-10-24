@@ -6,15 +6,14 @@
 // =========================================================================
 // KONFIGURASI HARDWARE ESP32-C3 & TFT SPI (76x284)
 // =========================================================================
-// Definisikan pin SPI untuk ESP32-C3 (sesuaikan dengan wiring PCB Anda)
 #define TFT_MOSI 6
 #define TFT_SCLK 4
 #define TFT_DC   2
 #define TFT_CS   7
-#define TFT_RST  3  // Perhatikan: jika GPIO 3 dipakai tombol, pindahkan salah satu pin RST/Tombol
-#define PIN_BUTTON 5  // Pin Tombol (Internal Pullup) dipindah ke GPIO 5 agar tidak bentrok
+#define TFT_RST  3  
+#define PIN_BUTTON 5  // Pin Tombol Navigasi (Internal Pullup)
 
-// Konfigurasi Display 76x284 menggunakan Arduino_GFX
+// Konfigurasi Display 76x284 menggunakan Arduino_GFX (ST7789)
 Arduino_DataBus *bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, GFX_NOT_DEFINED);
 Arduino_GFX *display = new Arduino_ST7789(bus, TFT_RST, 0, true, 76, 284, 35, 0, 35, 0);
 
@@ -65,7 +64,7 @@ unsigned long lastDebounceTime = 0;
 uint8_t advHistoryMapped[HISTORY_LEN] = {0};
 int historyIdx = 0;
 
-// Alamat MAC Target ECU Transmitter (Sesuaikan dengan ESP32-S3 Anda)
+// Alamat MAC Target ECU Transmitter (Sesuaikan dengan MAC ESP32-S3 Anda)
 uint8_t targetEcuAddress[] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC}; 
 esp_now_peer_info_t peerInfo;
 
@@ -164,7 +163,7 @@ void drawDashboardPage(const TelemetryData &data) {
 
   display->drawFastHLine(0, 16, 76, WHITE);
 
-  // 2. RPM Utama (Vertikal Menengah)
+  // 2. RPM Utama
   display->setTextSize(1);
   display->setCursor(18, 30);
   display->println("RPM");
@@ -173,14 +172,14 @@ void drawDashboardPage(const TelemetryData &data) {
   display->setCursor(4, 48);
   display->printf("%5d", data.rpm);
 
-  // 3. Bar Gauge RPM Vertikal / Horizontal
+  // 3. Bar Gauge RPM
   display->drawRect(4, 80, 68, 12, WHITE);
   int barWidth = map(constrain(data.rpm, 0, MAX_RPM), 0, MAX_RPM, 0, 64);
   if (barWidth > 0) {
     display->fillRect(6, 82, barWidth, 8, WHITE);
   }
 
-  // 4. Parameter Tambahan Tersusun Vertikal di Bawah
+  // 4. Parameter Tambahan Vertikal
   display->setTextSize(1);
   display->setCursor(6, 120);
   display->printf("Advance: %.1f*", data.degree10 / 10.0f);
@@ -199,7 +198,7 @@ void drawCurvePage(const TelemetryData &data) {
   display->println("ADV CURVE");
   display->drawFastHLine(0, 16, 76, WHITE);
 
-  // Plot Grafik Advance Pengapian (Lebar 76 px)
+  // Plot Grafik Advance Pengapian
   int prevX = 0;
   int prevY = 150; 
 
