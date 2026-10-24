@@ -59,12 +59,12 @@ bool longPressTriggered = false;
 bool lastButtonState = HIGH; 
 unsigned long lastDebounceTime = 0;
 
-// --- HISTORI DATA GRAFIK (KURVA 76 PIKSEL SESUAI LEBAR LAYAR) ---
+// --- HISTORI DATA GRAFIK (KURVA 76 PIKSEL) ---
 #define HISTORY_LEN 76
 uint8_t advHistoryMapped[HISTORY_LEN] = {0};
 int historyIdx = 0;
 
-// Alamat MAC Target ECU Transmitter (Sesuaikan dengan MAC ESP32-S3 Anda)
+// Alamat MAC Target ECU Transmitter
 uint8_t targetEcuAddress[] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC}; 
 esp_now_peer_info_t peerInfo;
 
@@ -141,13 +141,13 @@ void showWelcomeLogo() {
   display->println("DASHBOARD");
 
   display->setCursor(14, 180);
-  display->println("TFT v3.0");
+  display->println("TFT v3.1");
   
   delay(2000);
 }
 
 void drawDashboardPage(const TelemetryData &data) {
-  // 1. Header: Mode & Voltase
+  // 1. Header: Mode & Voltase[cite: 3]
   const char* modeStr = "DAIL";
   if (data.mode == 1) modeStr = "RACE";
   else if (data.mode == 2) modeStr = "EXTR";
@@ -163,24 +163,47 @@ void drawDashboardPage(const TelemetryData &data) {
 
   display->drawFastHLine(0, 16, 76, WHITE);
 
-  // 2. RPM Utama
+  // 2. Angka RPM Utama[cite: 3]
   display->setTextSize(1);
-  display->setCursor(18, 30);
+  display->setCursor(24, 24);
   display->println("RPM");
 
   display->setTextSize(2);
-  display->setCursor(4, 48);
+  display->setCursor(4, 38);
   display->printf("%5d", data.rpm);
 
-  // 3. Bar Gauge RPM
-  display->drawRect(4, 80, 68, 12, WHITE);
-  int barWidth = map(constrain(data.rpm, 0, MAX_RPM), 0, MAX_RPM, 0, 64);
-  if (barWidth > 0) {
-    display->fillRect(6, 82, barWidth, 8, WHITE);
+  // 3. RPM Bar Dinamis (Serong di kiri bawah lalu horizontal di tepi atas area tengah)
+  // Total 28 segmen/titik progress
+  int maxSteps = 28;
+  int currentStep = map(constrain(data.rpm, 0, MAX_RPM), 0, MAX_RPM, 0, maxSteps);
+
+  for (int i = 0; i < maxSteps; i++) {
+    int px, py;
+    if (i < 10) {
+      // Jalur Serong (Kiri bawah naik ke atas-kanan)
+      px = 6 + (i * 3);
+      py = 95 - (i * 2);
+    } else {
+      // Jalur Lurus Horizontal di tepi atas
+      px = 36 + ((i - 10) * 2);
+      py = 75;
+    }
+
+    // Warna Dinamis Berdasarkan Putaran RPM (Hijau -> Kuning -> Merah)
+    uint16_t barColor = GREEN;
+    if (i > 18) barColor = YELLOW;
+    if (i > 24) barColor = RED;
+
+    if (i < currentStep) {
+      display->fillRect(px, py, 2, 6, barColor);
+    } else {
+      display->drawRect(px, py, 2, 6, DARKGREY);
+    }
   }
 
-  // 4. Parameter Tambahan Vertikal
+  // 4. Parameter Tambahan Tersusun Vertikal di Bawah[cite: 3]
   display->setTextSize(1);
+  display->setTextColor(WHITE);
   display->setCursor(6, 120);
   display->printf("Advance: %.1f*", data.degree10 / 10.0f);
 
@@ -198,7 +221,7 @@ void drawCurvePage(const TelemetryData &data) {
   display->println("ADV CURVE");
   display->drawFastHLine(0, 16, 76, WHITE);
 
-  // Plot Grafik Advance Pengapian
+  // Plot Grafik Advance Pengapian[cite: 3]
   int prevX = 0;
   int prevY = 150; 
 
@@ -316,7 +339,7 @@ void setup() {
 
   showWelcomeLogo();
 
-  // Inisialisasi ESP-NOW
+  // Inisialisasi ESP-NOW[cite: 3]
   WiFi.mode(WIFI_STA);
   if (esp_now_init() == ESP_OK) {
     esp_now_register_recv_cb(OnDataRecv);
